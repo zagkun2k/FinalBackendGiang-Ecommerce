@@ -78,8 +78,8 @@ public class OrderController {
 
 	}
 
-	@PostMapping("/{email}")
-	public ResponseEntity<Order> checkout(@PathVariable("email") String email, @RequestBody Cart cart) {
+	@PostMapping("/{email}/{expressFee}")
+	public ResponseEntity<Order> checkout(@PathVariable("email") String email, @PathVariable("expressFee") int expressFee, @RequestBody Cart cart) {
 
 		if (!this.userService.checkExistedUserByEmail(email)) {
 
@@ -91,7 +91,7 @@ public class OrderController {
 			return ResponseEntity.notFound().build();
 		}
 
-		return ResponseEntity.ok(this.getCheckOutOrder(email, cart));
+		return ResponseEntity.ok(this.getCheckOutOrder(email, cart, expressFee));
 
 	}
 
@@ -164,7 +164,7 @@ public class OrderController {
 
 	}
 
-	public Order getCheckOutOrder(String email, Cart cart) {
+	public Order getCheckOutOrder(String email, Cart cart, int expressFee) {
 
 		List<CartDetail> items = cartDetailRepository.findByCart(cart);
 		for (CartDetail detail : items) {
@@ -185,6 +185,7 @@ public class OrderController {
 
 			amount += i.getPrice();
 		}
+		amount += expressFee;
 
 		Order order = this.orderRepository.save(new Order(0L, new Date(), amount, cart.getAddress(), cart.getPhone(), 0,
 				this.userRepository.findByEmail(email).get()));
