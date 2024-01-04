@@ -167,6 +167,18 @@ public class OrderController {
 	public Order getCheckOutOrder(String email, Cart cart) {
 
 		List<CartDetail> items = cartDetailRepository.findByCart(cart);
+		for (CartDetail detail : items) {
+
+			Product product = detail.getProduct();
+			int quantity = detail.getProduct().getQuantity() - detail.getQuantity();
+			if (quantity <= 0) {
+
+				quantity = 0;
+				product.setStatus(false);
+			}
+			product.setQuantity(quantity);
+			this.productService.saveProduct(product);
+		}
 		Double amount = 0.0;
 
 		for (CartDetail i : items) {

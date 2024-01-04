@@ -61,60 +61,23 @@ public class CartDetailController {
 		}
 
 		int quantityProduct = this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity();
-		int oldOrderQuantity = this.cartDetailService.findCartDetailById(id).get().getQuantity();
+//		int oldOrderQuantity = this.cartDetailService.findCartDetailById(id).get().getQuantity();
 
 		if (quantity == -1) {
 
-			int totalQuantity = quantityProduct + oldOrderQuantity;
 			this.cartDetailService.findCartDetailById(id).get().setQuantity(1);
-			this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(totalQuantity - 1);
-			if (this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity() > 0) {
-
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(true);
-			}
 			return ResponseEntity.ok(this.cartDetailService.findCartDetailById(id).get());
 		}
 
-		if (this.cartDetailService.findCartDetailById(id).get().getProduct().getStatus() == false
-				&& (quantity > oldOrderQuantity)) {
+		if (quantity < quantityProduct) {
 
-			return ResponseEntity.ok(this.cartDetailService.findCartDetailById(id).get());
-		}
-
-		if (quantity < oldOrderQuantity) {
-
-			this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(quantityProduct + 1);
 			this.cartDetailService.findCartDetailById(id).get().setQuantity(quantity);
-			if (this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity() > 0) {
+		} else {
 
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(true);
-			}
-		} else if (quantity > oldOrderQuantity) {
-
-			if (quantity > quantityProduct + oldOrderQuantity) {
-
-				this.cartDetailService.findCartDetailById(id).get().setQuantity(quantityProduct + oldOrderQuantity);;
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(0);
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(false);
-				return ResponseEntity.ok(this.cartDetailService.findCartDetailById(id).get());
-			} else if (quantity == quantityProduct + oldOrderQuantity) {
-
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(0);
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(false);
-				this.cartDetailService.findCartDetailById(id).get().setQuantity(quantity);
-			} else {
-
-				this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(quantityProduct - 1);
-				this.cartDetailService.findCartDetailById(id).get().setQuantity(quantity);
-				if (this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity() == 0) {
-
-					this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(false);
-				}
-			}
+			this.cartDetailService.findCartDetailById(id).get().setQuantity(quantityProduct);
 		}
 
 		return ResponseEntity.ok(this.cartDetailService.findCartDetailById(id).get());
-
 	}
 
 	@PostMapping()
@@ -125,7 +88,7 @@ public class CartDetailController {
 			return ResponseEntity.notFound().build();
 		}
 
-		boolean checkFlag = false;
+//		boolean checkFlag = false;
 		List<Product> listProducts = this.productService.findProductsByStatusTrue();
 		Product product = this.productService.findProductByIdAndStatusTrue(detail.getProduct().getProductId());
 
@@ -134,28 +97,28 @@ public class CartDetailController {
 			return ResponseEntity.notFound().build();
 		}
 
-		for (Product item : listProducts) {
-
-			if (item.getProductId() == product.getProductId()) {
-
-				checkFlag = true;
-				Product newProduct = this.productService.getProductById(product.getProductId()).get();
-				 if (newProduct.getQuantity() - 1 == 0) {
-
-					newProduct.setQuantity(0);
-					newProduct.setStatus(false);
-					this.productService.saveProduct(newProduct);
-				} else {
-
-					newProduct.setQuantity(newProduct.getQuantity() - 1);
-					this.productService.saveProduct(newProduct);
-				}
-			}
-		}
-		if (!checkFlag) {
-
-			return ResponseEntity.notFound().build();
-		}
+//		for (Product item : listProducts) {
+//
+//			if (item.getProductId() == product.getProductId()) {
+//
+//				checkFlag = true;
+//				Product newProduct = this.productService.getProductById(product.getProductId()).get();
+//				 if (newProduct.getQuantity() - 1 == 0) {
+//
+//					newProduct.setQuantity(0);
+//					newProduct.setStatus(false);
+//					this.productService.saveProduct(newProduct);
+//				} else {
+//
+//					newProduct.setQuantity(newProduct.getQuantity() - 1);
+//					this.productService.saveProduct(newProduct);
+//				}
+//			}
+//		}
+//		if (!checkFlag) {
+//
+//			return ResponseEntity.notFound().build();
+//		}
 
 		List<CartDetail> listCartsDetail = this.cartDetailService
 				.findCartsDetailByCart(this.cartService.findCartById(detail.getCart().getCartId()).get());
@@ -164,9 +127,18 @@ public class CartDetailController {
 
 			if (item.getProduct().getProductId() == detail.getProduct().getProductId()) {
 
-				item.setQuantity(item.getQuantity() + 1);
-				item.setPrice(item.getPrice() + detail.getPrice());
-				return ResponseEntity.ok(this.cartDetailService.saveCartDetail(item));
+				if (item.getQuantity() > this.productService.getProductById(detail.getProduct().getProductId()).get().getQuantity()) {
+
+					return ResponseEntity.notFound().build();
+				} else if (item.getQuantity() == this.productService.getProductById(detail.getProduct().getProductId()).get().getQuantity()) {
+
+					return ResponseEntity.notFound().build();
+				} else {
+
+					item.setQuantity(item.getQuantity() + 1);
+					item.setPrice(item.getPrice() + detail.getPrice());
+					return ResponseEntity.ok(this.cartDetailService.saveCartDetail(item));
+				}
 			}
 		}
 
@@ -193,14 +165,14 @@ public class CartDetailController {
 
 			return ResponseEntity.notFound().build();
 		}
-		int currentOrderQuantity = this.cartDetailService.findCartDetailById(id).get().getQuantity();
-		int currentProductQuantity = this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity();
-
-		this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(currentOrderQuantity + currentProductQuantity);
-		if (this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity() > 0) {
-
-			this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(true);
-		}
+//		int currentOrderQuantity = this.cartDetailService.findCartDetailById(id).get().getQuantity();
+//		int currentProductQuantity = this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity();
+//
+//		this.cartDetailService.findCartDetailById(id).get().getProduct().setQuantity(currentOrderQuantity + currentProductQuantity);
+//		if (this.cartDetailService.findCartDetailById(id).get().getProduct().getQuantity() > 0) {
+//
+//			this.cartDetailService.findCartDetailById(id).get().getProduct().setStatus(true);
+//		}
 
 		this.cartDetailService.deleteSpecCartDetailById(id);
 		return ResponseEntity.ok().build();
