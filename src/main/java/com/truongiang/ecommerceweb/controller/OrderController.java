@@ -98,6 +98,19 @@ public class OrderController {
 	@GetMapping("cancel/{orderId}")
 	public ResponseEntity<Void> cancel(@PathVariable("orderId") Long id) {
 
+		Order order = this.orderService.getOrderById(id).get();
+		List<OrderDetail> detail = this.orderDetailRepository.findByOrder(order);
+		for (OrderDetail orderDetail : detail) {
+
+			Product product = orderDetail.getProduct();
+			product.setQuantity(product.getQuantity() + orderDetail.getQuantity());
+			if (product.getQuantity() > 0) {
+
+				product.setStatus(true);
+			}
+			this.productService.saveProduct(product);
+		}
+
 		return this.commonSendMailOrder(id, 3);
 
 	}
